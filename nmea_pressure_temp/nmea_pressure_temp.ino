@@ -4,11 +4,10 @@
 
 SFE_BMP180 bmp180;
 
-char presSentence[30] = "$WIXDR,P,1.01408,B,Barometer*";
-char presSentence2[35] = "$WIMDA,,,1.00401,B,,,,,,,,,,,,,,,*";
-char tempSentence[25] = "$WIXDR,C,19.8,C,AirTemp*";
-char tempSentence2[16] = "$WIMTA,19.40,C*";
-char chksm[3];
+char pressureXDR[30] = "$WIXDR,P,1.01408,B,Barometer*";
+char pressureMDA[35] = "$WIMDA,,,1.00401,B,,,,,,,,,,,,,,,*";
+char temperatureXDR[25] = "$WIXDR,C,19.8,C,AirTemp*";
+char temperatureMTA[16] = "$WIMTA,19.40,C*";
 char pressure[8];
 char temperature[6];
 
@@ -37,79 +36,49 @@ void loop() {
         status = bmp180.getPressure(P, T);
 
         if (status != 0) {
-          /*Serial.print("Pressure: ");
-          Serial.print(String(P/1000,4));
-          Serial.println(" bar");*/
-          /*presSentence[10] = String(P/1000,4);*/
-          dtostrf(P/1000,1,5,pressure);
-          dtostrf(T,2,2,temperature);
-          for(int idx = 0; idx < 7; idx++){
-            presSentence[9+idx] = pressure[idx];
-            presSentence2[9+idx] = pressure[idx];
+          //Format pressure and temperature readings
+          dtostrf(P / 1000, 1, 5, pressure);
+          dtostrf(T, 2, 2, temperature);
+          for (int idx = 0; idx < 7; idx++) {
+            pressureXDR[9 + idx] = pressure[idx];
+            pressureMDA[9 + idx] = pressure[idx];
           }
-          for(int idx = 0; idx < 4; idx++){
-            tempSentence[9+idx] = temperature[idx];
+          for (int idx = 0; idx < 4; idx++) {
+            temperatureXDR[9 + idx] = temperature[idx];
           }
-          for(int idx = 0; idx < 5; idx++){
-            tempSentence2[7+idx] = temperature[idx];
+          for (int idx = 0; idx < 5; idx++) {
+            temperatureMTA[7 + idx] = temperature[idx];
           }
 
-          //Calculate checksums
-          int chksm = 0;
-          for( int idx = 1; idx < 28; idx++){
-            chksm ^= presSentence[idx];
-          }
-          Serial.print(presSentence);
-          if(chksm > 15){
-          Serial.println(chksm,HEX);
-          }else{
-            Serial.print(0);
-            Serial.println(chksm,HEX);
-          }
-
-          chksm = 0;
-          for( int idx = 1; idx < 23; idx++){
-            chksm ^= tempSentence[idx];
-          }
-
-          Serial.print(tempSentence);
-          if(chksm > 15){
-          Serial.println(chksm,HEX);
-          }else{
-            Serial.print(0);
-            Serial.println(chksm,HEX);
-          }
-
-          chksm = 0;
-          for( int idx = 1; idx < 33; idx++){
-            chksm ^= presSentence2[idx];
-          }
-
-          Serial.print(presSentence2);
-
-          if(chksm > 15){
-          Serial.println(chksm,HEX);
-          }else{
-            Serial.print(0);
-            Serial.println(chksm,HEX);
-          }
-
-          chksm = 0;
-          for( int idx = 1; idx < 14; idx++){
-            chksm ^= tempSentence2[idx];
-          }
-
-          Serial.print(tempSentence2);
-          if(chksm > 15){
-          Serial.println(chksm,HEX);
-          }else{
-            Serial.print(0);
-            Serial.println(chksm,HEX);
-          }
+          sentencePrinter(pressureXDR,checksumCalculator(pressureXDR,28));
+          delay(1000);
+          sentencePrinter(pressureMDA,checksumCalculator(pressureMDA,33));
+          delay(1000);
+          sentencePrinter(temperatureXDR,checksumCalculator(temperatureXDR,23));
+          delay(1000);
+          sentencePrinter(temperatureMTA,checksumCalculator(temperatureMTA,14));
         }
       }
     }
   }
-  delay(10000);
-  //Serial.println( F("$IIVHW,,T,,M,06.11,N,11.31,K*51") );
+  delay(7000);
+}
+
+int checksumCalculator(char *sentence, int sentenceLength) {
+  int checksum = 0;
+  for ( int idx = 1; idx < sentenceLength; idx++) {
+    checksum ^= sentence[idx];
+  }
+  return checksum;
+}
+
+int sentencePrinter(char *sentence, int checksum) {
+  Serial.print(sentence);
+  if (checksum > 15) {
+    Serial.println(checksum, HEX);
+  } else {
+    Serial.print(0);
+    Serial.println(checksum, HEX);
+  }
+  return 0;
 }
